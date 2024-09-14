@@ -1,68 +1,44 @@
+# Load necessary libraries
 library(ggplot2)
 
 # Load the dataset
-crime_data <- read.csv("Datasets/london-outcomes.csv")
+crime_data <- read.csv("path_to_your_file.csv")
 
-# Remove rows with missing Longitude or Latitude
-crime_data_clean <- subset(crime_data, !is.na(Longitude) & !is.na(Latitude))
+# Summarize murders by district
+murders_by_district <- aggregate(Murder ~ District, data = crime_data, sum)
 
-# Create a PDF file to store the plots
-pdf("plots.pdf", width = 10, height = 8)
+# Bar chart of murders by district
+ggplot(murders_by_district, aes(x = reorder(District, -Murder), y = Murder)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +  # Flip for better readability
+  labs(title = "Total Murders by District", x = "District", y = "Number of Murders")
 
-# Bar chart: Count of crimes by Outcome Type
-ggplot(crime_data, aes(x = Outcome.type)) +
-  geom_bar(fill = "steelblue") +
-  labs(title = "Count of Crimes by Outcome Type",
-       x = "Outcome Type",
-       y = "Count") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Summarize crime types (e.g., Murder, Rape, etc.)
+crime_summary <- colSums(crime_data[, c("Murder", "Rape", "Robbery")])  # You can add more crime columns
 
-# Pie chart: Proportion of crimes by Outcome Type
-crime_outcome <- table(crime_data$Outcome.type)
-pie(crime_outcome, 
-    main = "Proportion of Crimes by Outcome Type", 
-    col = rainbow(length(crime_outcome)),
-    labels = paste(names(crime_outcome), "\n", round(prop.table(crime_outcome) * 100, 1), "%"))
+# Create a pie chart
+pie(crime_summary, labels = names(crime_summary), main = "Crime Distribution by Type", col = rainbow(length(crime_summary)))
 
-# Convert 'Month' to Date format
-crime_data$Month <- as.Date(paste0(crime_data$Month, "-01"), format = "%Y-%m-%d")
+# Histogram of murders
+ggplot(crime_data, aes(x = Murder)) +
+  geom_histogram(binwidth = 5, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Murders across Districts", x = "Number of Murders", y = "Frequency")
 
-# Timeline chart: Number of crimes over time
-ggplot(crime_data, aes(x = Month)) +
-  geom_line(stat = "count", color = "darkred") +
-  labs(title = "Number of Crimes Over Time",
-       x = "Month",
-       y = "Count") +
-  theme_minimal()
+# Summarize murders by year
+murders_by_year <- aggregate(Murder ~ Year, data = crime_data, sum)
 
-# Histogram: Distribution of crimes by Longitude
-ggplot(crime_data_clean, aes(x = Longitude)) +
-  geom_histogram(binwidth = 0.01, fill = "skyblue", color = "black") +
-  labs(title = "Distribution of Crimes by Longitude",
-       x = "Longitude",
-       y = "Count") +
-  theme_minimal()
+# Line plot (timeline chart)
+ggplot(murders_by_year, aes(x = Year, y = Murder)) +
+  geom_line(color = "red", size = 1) +
+  labs(title = "Murders over Time", x = "Year", y = "Number of Murders")
 
-# Scatter plot: Latitude vs. Longitude of crime locations
-ggplot(crime_data_clean, aes(x = Longitude, y = Latitude)) +
-  geom_point(alpha = 0.6, color = "tomato") +
-  labs(title = "Scatter Plot of Crime Locations",
-       x = "Longitude",
-       y = "Latitude") +
-  theme_minimal()
+# Scatter plot of Murders vs Rapes
+ggplot(crime_data, aes(x = Murder, y = Rape)) +
+  geom_point(color = "darkgreen", size = 3) +
+  labs(title = "Scatter plot of Murders vs Rapes", x = "Murders", y = "Rapes")
 
-# Calculate counts by location
-crime_location_counts <- aggregate(Crime.ID ~ Longitude + Latitude, data = crime_data_clean, FUN = length)
+# Bubble plot: Murders vs Rapes, with size based on Robberies
+ggplot(crime_data, aes(x = Murder, y = Rape, size = Robbery)) +
+  geom_point(alpha = 0.5, color = "purple") +
+  labs(title = "Bubble plot of Murders, Rapes, and Robberies", x = "Murders", y = "Rapes", size = "Robberies")
 
-# Bubble plot: Crime locations with bubble size by count
-ggplot(crime_location_counts, aes(x = Longitude, y = Latitude, size = Crime.ID)) +
-  geom_point(alpha = 0.5, color = "dodgerblue") +
-  labs(title = "Crime Locations with Bubble Size by Count",
-       x = "Longitude",
-       y = "Latitude",
-       size = "Crime Count") +
-  theme_minimal()
-
-# Close the PDF device
-dev.off()
